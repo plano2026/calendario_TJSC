@@ -12,6 +12,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
+            scroll-behavior: smooth;
         }
 
         /* --- VISUALIZAÇÃO DESKTOP (Grid) --- */
@@ -45,6 +46,11 @@
                 padding: 16px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.04);
                 border: 1px solid #e2e8f0;
+                transition: transform 0.2s;
+            }
+            .mobile-card.is-today {
+                border: 2px solid #3b82f6;
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
             }
             .mobile-card.completed {
                 background-color: #dcfce7;
@@ -61,6 +67,14 @@
             position: relative;
             cursor: pointer;
             transition: background 0.2s;
+        }
+        
+        .calendar-day.is-today {
+            background-color: #eff6ff;
+        }
+        .calendar-day.is-today .day-number {
+            color: #3b82f6;
+            text-decoration: underline;
         }
 
         .day-number { font-weight: 800; font-size: 0.9rem; color: #94a3b8; margin-bottom: 6px; display: block; }
@@ -147,8 +161,12 @@
 
     <script>
         const storageKey = "tjsc_final_responsive_v1";
-        let currentYear = 2026;
-        let currentMonth = 0; 
+        
+        // Detecta data atual
+        const now = new Date();
+        let currentYear = now.getFullYear();
+        let currentMonth = now.getMonth(); 
+        
         let selectedDayKey = null;
 
         const masterSchedule = {
@@ -163,7 +181,7 @@
 
         let progress = JSON.parse(localStorage.getItem(storageKey)) || {};
 
-        function render() {
+        function render(shouldScroll = false) {
             const grid = document.getElementById('calendarGrid');
             const list = document.getElementById('mobileList');
             const monthLabel = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -188,13 +206,16 @@
                 const dayKey = `${currentYear}-${currentMonth}-${i}`;
                 const isCompleted = progress[dayKey];
                 const disciplines = masterSchedule[dayOfWeek];
+                
+                // Verifica se é hoje
+                const isToday = i === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear();
 
                 // Render Desktop
                 const dayDiv = document.createElement('div');
-                dayDiv.className = `calendar-day ${isCompleted ? 'completed' : ''}`;
+                dayDiv.className = `calendar-day ${isCompleted ? 'completed' : ''} ${isToday ? 'is-today' : ''}`;
                 dayDiv.onclick = () => openModal(i, dayOfWeek, dayKey);
                 dayDiv.innerHTML = `
-                    <span class="day-number">${i}</span>
+                    <span class="day-number">${i}${isToday ? ' (Hoje)' : ''}</span>
                     ${disciplines.map(d => `<div class="discipline-tag ${d.class}">${d.name.replace('Direito ', '')}</div>`).join('')}
                     ${isCompleted ? '<div class="absolute top-2 right-2 text-green-600"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path></svg></div>' : ''}
                 `;
@@ -202,14 +223,15 @@
 
                 // Render Mobile (Lista)
                 const card = document.createElement('div');
-                card.className = `mobile-card ${isCompleted ? 'completed' : ''}`;
+                card.className = `mobile-card ${isCompleted ? 'completed' : ''} ${isToday ? 'is-today' : ''}`;
+                if (isToday) card.id = "today-mobile-card";
                 card.onclick = () => openModal(i, dayOfWeek, dayKey);
                 card.innerHTML = `
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center gap-3">
-                            <span class="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-full font-black text-slate-700">${i}</span>
+                            <span class="w-10 h-10 flex items-center justify-center ${isToday ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'} rounded-full font-black">${i}</span>
                             <div>
-                                <div class="font-black text-slate-800">${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][dayOfWeek]}</div>
+                                <div class="font-black text-slate-800">${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][dayOfWeek]} ${isToday ? '• Hoje' : ''}</div>
                                 <div class="text-[10px] text-slate-400 font-bold uppercase">${monthLabel[currentMonth]}</div>
                             </div>
                         </div>
@@ -220,6 +242,16 @@
                     </div>
                 `;
                 list.appendChild(card);
+            }
+
+            // Scroll suave para o dia de hoje no Mobile
+            if (shouldScroll) {
+                setTimeout(() => {
+                    const todayCard = document.getElementById('today-mobile-card');
+                    if (todayCard && window.innerWidth < 768) {
+                        todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
             }
         }
 
@@ -251,15 +283,16 @@
             if (progress[selectedDayKey]) delete progress[selectedDayKey];
             else progress[selectedDayKey] = true;
             localStorage.setItem(storageKey, JSON.stringify(progress));
-            render();
+            render(false); // Renderiza sem scroll ao marcar conclusão
             closeModal();
         }
 
-        document.getElementById('prevMonth').onclick = () => { currentMonth--; if(currentMonth < 0){ currentMonth=11; currentYear--; } render(); };
-        document.getElementById('nextMonth').onclick = () => { currentMonth++; if(currentMonth > 11){ currentMonth=0; currentYear++; } render(); };
-        document.getElementById('clearData').onclick = () => { if(confirm("Zerar todo o seu progresso?")) { progress = {}; localStorage.removeItem(storageKey); render(); } };
+        document.getElementById('prevMonth').onclick = () => { currentMonth--; if(currentMonth < 0){ currentMonth=11; currentYear--; } render(false); };
+        document.getElementById('nextMonth').onclick = () => { currentMonth++; if(currentMonth > 11){ currentMonth=0; currentYear++; } render(false); };
+        document.getElementById('clearData').onclick = () => { if(confirm("Zerar todo o seu progresso?")) { progress = {}; localStorage.removeItem(storageKey); render(false); } };
 
-        render();
+        // Renderização inicial com scroll automático
+        render(true);
     </script>
 </body>
 </html>
