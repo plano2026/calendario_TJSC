@@ -21,7 +21,17 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        /* --- VISUALIZAÇÃO DESKTOP (Grid) --- */
+        /* Estilo Sticky para o Header Mobile */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(248, 250, 252, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
         @media (min-width: 768px) {
             .calendar-grid {
                 display: grid;
@@ -40,9 +50,9 @@
                 padding: 12px 0;
             }
             .mobile-list { display: none; }
+            .sticky-header { position: static; background: transparent; backdrop-filter: none; }
         }
 
-        /* --- VISUALIZAÇÃO MOBILE (Lista/Agenda) --- */
         @media (max-width: 767px) {
             .calendar-header-grid, .calendar-grid { display: none; }
             .mobile-list { display: flex; flex-direction: column; gap: 12px; padding: 10px; }
@@ -60,6 +70,13 @@
             .mobile-card.completed {
                 background-color: #dcfce7;
                 border-color: #22c55e;
+            }
+            /* Ajuste para o header sticky não colar no topo */
+            .sticky-header {
+                padding-top: 1rem;
+                padding-bottom: 0.75rem;
+                margin-bottom: 0.5rem;
+                border-bottom: 1px solid rgba(226, 232, 240, 0.5);
             }
         }
 
@@ -86,7 +103,6 @@
             border-left: 3px solid rgba(0,0,0,0.1);
         }
 
-        /* Cores das Disciplinas */
         .c-portugues { background: #eff6ff; color: #1d4ed8; }
         .c-proc-civil { background: #fffbeb; color: #b45309; }
         .c-constitucional { background: #f0fdf4; color: #15803d; }
@@ -98,10 +114,6 @@
         .completed { background-color: #dcfce7 !important; }
         .completed .day-number { color: #15803d; }
 
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
-
-        /* Fix para os gráficos não "derreterem" */
         .chart-container {
             position: relative;
             height: 300px;
@@ -111,34 +123,39 @@
 </head>
 <body class="pb-20">
 
-    <header class="max-w-6xl mx-auto p-4 md:pt-10">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-                <h1 class="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">TJSC • Cronograma</h1>
-                <p class="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Técnico Judiciário Auxiliar</p>
-            </div>
-            
-            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <button onclick="openDashboard()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    Dashboard
-                </button>
+    <!-- Header fixo no mobile para fácil acesso -->
+    <header class="sticky-header">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+                <div class="hidden md:block">
+                    <h1 class="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">TJSC • Cronograma</h1>
+                    <p class="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Técnico Judiciário Auxiliar</p>
+                </div>
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <!-- Dashboard com destaque no mobile -->
+                    <button onclick="openDashboard()" class="flex-none flex items-center justify-center bg-blue-600 text-white p-3 md:px-5 md:py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        <span class="hidden md:inline ml-2">Dashboard</span>
+                    </button>
 
-                <div class="flex items-center bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm flex-1 md:flex-none justify-between">
-                    <button id="prevMonth" class="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <span id="currentMonthYear" class="px-3 font-extrabold text-blue-900 text-xs uppercase tracking-tighter whitespace-nowrap">Janeiro 2026</span>
-                    <button id="nextMonth" class="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                    </button>
+                    <!-- Seletor de Mês sempre acessível -->
+                    <div class="flex items-center bg-white border border-slate-200 rounded-2xl p-1 shadow-sm flex-1 justify-between">
+                        <button id="prevMonth" class="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <span id="currentMonthYear" class="px-2 font-black text-blue-900 text-[10px] md:text-xs uppercase tracking-tighter whitespace-nowrap text-center">Janeiro 2026</span>
+                        <button id="nextMonth" class="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto md:px-4">
-        <div class="hidden md:block overflow-hidden rounded-3xl border border-slate-200 shadow-xl">
+    <main class="max-w-6xl mx-auto md:px-4 md:mt-4">
+        <div class="hidden md:block overflow-hidden rounded-3xl border border-slate-200 shadow-xl bg-white">
             <div class="calendar-header-grid">
                 <div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div>
             </div>
@@ -158,7 +175,7 @@
         </div>
     </footer>
 
-    <!-- Modal de Estudo (Dia) -->
+    <!-- Modais mantidos conforme original -->
     <div id="modal" class="fixed inset-0 bg-slate-900/70 hidden items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-md">
         <div class="bg-white rounded-t-3xl md:rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-start mb-6">
@@ -170,9 +187,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            
             <div id="modalContent" class="space-y-4"></div>
-
             <div class="mt-8 grid grid-cols-2 gap-3">
                 <button onclick="closeModal()" class="py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest">Cancelar</button>
                 <button onclick="saveDayProgress()" id="completeBtn" class="py-4 bg-green-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-green-100"></button>
@@ -180,7 +195,6 @@
         </div>
     </div>
 
-    <!-- Modal Dashboard -->
     <div id="dashModal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-4 z-[60] backdrop-blur-xl">
         <div class="bg-white rounded-[2.5rem] max-w-4xl w-full p-6 md:p-10 shadow-2xl max-h-[95vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-10">
@@ -192,7 +206,6 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <div class="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
                     <p class="text-blue-600 font-black text-xs uppercase tracking-widest mb-1">Total de Horas</p>
@@ -207,19 +220,14 @@
                     <h4 id="statAverage" class="text-4xl font-black text-purple-900">0h</h4>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                     <p class="text-slate-500 font-black text-xs uppercase tracking-widest mb-6 text-center">Horas por Disciplina</p>
-                    <div class="chart-container">
-                        <canvas id="chartBars"></canvas>
-                    </div>
+                    <div class="chart-container"><canvas id="chartBars"></canvas></div>
                 </div>
                 <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                     <p class="text-slate-500 font-black text-xs uppercase tracking-widest mb-6 text-center">Distribuição %</p>
-                    <div class="chart-container">
-                        <canvas id="chartDoughnut"></canvas>
-                    </div>
+                    <div class="chart-container"><canvas id="chartDoughnut"></canvas></div>
                 </div>
             </div>
         </div>
@@ -244,7 +252,6 @@
             0: [ { id: "admin", name: "Direito Administrativo", class: "c-administrativo" }, { id: "const", name: "Direito Constitucional", class: "c-constitucional" } ]
         };
 
-        // progress[dayKey] = { completed: bool, hours: { discId: val } }
         let progress = JSON.parse(localStorage.getItem(storageKey)) || {};
 
         function render(shouldScroll = false) {
@@ -271,7 +278,6 @@
                 const disciplines = masterSchedule[dayOfWeek];
                 const isToday = i === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear();
 
-                // Desktop
                 const dayDiv = document.createElement('div');
                 dayDiv.className = `calendar-day ${data.completed ? 'completed' : ''} ${isToday ? 'is-today' : ''}`;
                 dayDiv.onclick = () => openModal(i, dayOfWeek, dayKey);
@@ -282,7 +288,6 @@
                 `;
                 grid.appendChild(dayDiv);
 
-                // Mobile
                 const card = document.createElement('div');
                 card.className = `mobile-card ${data.completed ? 'completed' : ''} ${isToday ? 'is-today' : ''}`;
                 if (isToday) card.id = "today-mobile-card";
@@ -316,8 +321,8 @@
         function openModal(day, dayOfWeek, key) {
             selectedDayKey = key;
             const data = progress[key] || { completed: false, hours: {} };
-            const weekDays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-            document.getElementById('modalDate').innerText = `${day} de ${document.getElementById('currentMonthYear').innerText.split(' ')[0]}`;
+            const monthLabel = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            document.getElementById('modalDate').innerText = `${day} de ${monthLabel[currentMonth]}`;
             
             document.getElementById('modalContent').innerHTML = masterSchedule[dayOfWeek].map(item => `
                 <div class="p-4 rounded-2xl ${item.class} border border-black/5">
@@ -365,10 +370,8 @@
             closeModal();
         }
 
-        // Dashboard Logic
         function openDashboard() {
             document.getElementById('dashModal').classList.replace('hidden', 'flex');
-            // Timeout curto para garantir que o DOM renderizou o canvas antes do Chart.js tentar medir o tamanho
             setTimeout(updateStats, 50);
         }
 
@@ -379,13 +382,8 @@
         function updateStats() {
             let totalH = 0;
             let totalD = 0;
-            let discTotals = {
-                port: 0, civil: 0, "p-civil": 0, const: 0, "p-penal": 0, admin: 0, penal: 0
-            };
-            const labelsMap = {
-                port: "Português", civil: "Dir. Civil", "p-civil": "Proc. Civil", 
-                const: "Constitucional", "p-penal": "Proc. Penal", admin: "Administrativo", penal: "Penal"
-            };
+            let discTotals = { port: 0, civil: 0, "p-civil": 0, const: 0, "p-penal": 0, admin: 0, penal: 0 };
+            const labelsMap = { port: "Português", civil: "Dir. Civil", "p-civil": "Proc. Civil", const: "Constitucional", "p-penal": "Proc. Penal", admin: "Administrativo", penal: "Penal" };
 
             Object.values(progress).forEach(day => {
                 if (day.completed) {
@@ -404,66 +402,37 @@
             const dataValues = Object.values(discTotals);
             const dataLabels = Object.keys(discTotals).map(id => labelsMap[id]);
 
-            // Configurações Globais para evitar o redimensionamento infinito
             Chart.defaults.maintainAspectRatio = false;
             Chart.defaults.responsive = true;
 
-            // Charts
             if (barChart) barChart.destroy();
             if (doughnutChart) doughnutChart.destroy();
 
-            const ctxBar = document.getElementById('chartBars').getContext('2d');
-            barChart = new Chart(ctxBar, {
+            barChart = new Chart(document.getElementById('chartBars').getContext('2d'), {
                 type: 'bar',
                 data: {
                     labels: dataLabels,
-                    datasets: [{
-                        label: 'Horas Totais',
-                        data: dataValues,
-                        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1', '#ef4444'],
-                        borderRadius: 8
-                    }]
+                    datasets: [{ label: 'Horas Totais', data: dataValues, backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1', '#ef4444'], borderRadius: 8 }]
                 },
-                options: { 
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }, 
-                        x: { grid: { display: false }, ticks: { font: { size: 10 } } } 
-                    }
-                }
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
             });
 
-            const ctxDou = document.getElementById('chartDoughnut').getContext('2d');
-            doughnutChart = new Chart(ctxDou, {
+            doughnutChart = new Chart(document.getElementById('chartDoughnut').getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: dataLabels,
-                    datasets: [{
-                        data: dataValues,
-                        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1', '#ef4444'],
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
+                    datasets: [{ data: dataValues, backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1', '#ef4444'], borderWidth: 0 }]
                 },
-                options: { 
-                    plugins: { 
-                        legend: { 
-                            position: 'bottom', 
-                            labels: { usePointStyle: true, font: { weight: 'bold', size: 9 }, padding: 15 } 
-                        } 
-                    },
-                    cutout: '60%'
-                }
+                options: { plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { weight: 'bold', size: 9 } } } }, cutout: '60%' }
             });
         }
 
-        // Backup & Restore
         function exportData() {
             const blob = new Blob([JSON.stringify(progress)], {type: "application/json"});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `tjsc_estudos_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `tjsc_estudos_backup.json`;
             a.click();
         }
 
@@ -476,12 +445,9 @@
                 const reader = new FileReader();
                 reader.onload = event => {
                     try {
-                        const imported = JSON.parse(event.target.result);
-                        if(confirm("Isso irá substituir seu progresso atual. Continuar?")) {
-                            progress = imported;
-                            localStorage.setItem(storageKey, JSON.stringify(progress));
-                            render();
-                        }
+                        progress = JSON.parse(event.target.result);
+                        localStorage.setItem(storageKey, JSON.stringify(progress));
+                        render();
                     } catch (err) { alert("Arquivo inválido."); }
                 };
                 reader.readAsText(file);
@@ -491,7 +457,7 @@
 
         document.getElementById('prevMonth').onclick = () => { currentMonth--; if(currentMonth < 0){ currentMonth=11; currentYear--; } render(false); };
         document.getElementById('nextMonth').onclick = () => { currentMonth++; if(currentMonth > 11){ currentMonth=0; currentYear++; } render(false); };
-        document.getElementById('clearData').onclick = () => { if(confirm("ATENÇÃO: Isso apagará permanentemente todos os seus dados de estudo e horas. Tem certeza?")) { progress = {}; localStorage.removeItem(storageKey); render(false); } };
+        document.getElementById('clearData').onclick = () => { if(confirm("Deseja zerar todo o progresso?")) { progress = {}; localStorage.removeItem(storageKey); render(false); } };
 
         render(true);
     </script>
