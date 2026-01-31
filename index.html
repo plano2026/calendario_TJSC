@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TJSC - Gestão de Estudos</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
@@ -14,6 +15,11 @@
             color: #1e293b;
             scroll-behavior: smooth;
         }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
         /* --- VISUALIZAÇÃO DESKTOP (Grid) --- */
         @media (min-width: 768px) {
@@ -46,7 +52,6 @@
                 padding: 16px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.04);
                 border: 1px solid #e2e8f0;
-                transition: transform 0.2s;
             }
             .mobile-card.is-today {
                 border: 2px solid #3b82f6;
@@ -58,7 +63,6 @@
             }
         }
 
-        /* Estilos de Célula (Desktop) */
         .calendar-day {
             min-height: 120px;
             border-right: 1px solid #e2e8f0;
@@ -69,17 +73,10 @@
             transition: background 0.2s;
         }
         
-        .calendar-day.is-today {
-            background-color: #eff6ff;
-        }
-        .calendar-day.is-today .day-number {
-            color: #3b82f6;
-            text-decoration: underline;
-        }
-
+        .calendar-day.is-today { background-color: #eff6ff; }
+        .calendar-day.is-today .day-number { color: #3b82f6; text-decoration: underline; }
         .day-number { font-weight: 800; font-size: 0.9rem; color: #94a3b8; margin-bottom: 6px; display: block; }
         
-        /* Disciplinas */
         .discipline-tag {
             font-size: 0.65rem;
             font-weight: 700;
@@ -89,7 +86,7 @@
             border-left: 3px solid rgba(0,0,0,0.1);
         }
 
-        /* Cores */
+        /* Cores das Disciplinas */
         .c-portugues { background: #eff6ff; color: #1d4ed8; }
         .c-proc-civil { background: #fffbeb; color: #b45309; }
         .c-constitucional { background: #f0fdf4; color: #15803d; }
@@ -100,9 +97,19 @@
 
         .completed { background-color: #dcfce7 !important; }
         .completed .day-number { color: #15803d; }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
+        /* Fix para os gráficos não "derreterem" */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
     </style>
 </head>
-<body class="pb-10">
+<body class="pb-20">
 
     <header class="max-w-6xl mx-auto p-4 md:pt-10">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -111,20 +118,26 @@
                 <p class="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Técnico Judiciário Auxiliar</p>
             </div>
             
-            <div class="flex items-center bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm w-full md:w-auto justify-between md:justify-start">
-                <button id="prevMonth" class="p-2.5 hover:bg-slate-50 rounded-xl text-slate-400">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <button onclick="openDashboard()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    Dashboard
                 </button>
-                <span id="currentMonthYear" class="px-6 font-extrabold text-blue-900 text-sm uppercase tracking-tighter">Janeiro 2026</span>
-                <button id="nextMonth" class="p-2.5 hover:bg-slate-50 rounded-xl text-slate-400">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                </button>
+
+                <div class="flex items-center bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm flex-1 md:flex-none justify-between">
+                    <button id="prevMonth" class="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <span id="currentMonthYear" class="px-3 font-extrabold text-blue-900 text-xs uppercase tracking-tighter whitespace-nowrap">Janeiro 2026</span>
+                    <button id="nextMonth" class="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
 
     <main class="max-w-6xl mx-auto md:px-4">
-        <!-- Desktop: Grid Tradicional -->
         <div class="hidden md:block overflow-hidden rounded-3xl border border-slate-200 shadow-xl">
             <div class="calendar-header-grid">
                 <div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div>
@@ -132,53 +145,106 @@
             <div id="calendarGrid" class="calendar-grid"></div>
         </div>
 
-        <!-- Mobile: Lista de Cards -->
-        <div id="mobileList" class="mobile-list md:hidden">
-            <!-- Cards gerados via JS -->
-        </div>
+        <div id="mobileList" class="mobile-list md:hidden"></div>
     </main>
 
-    <div class="max-w-6xl mx-auto mt-8 text-center px-4">
-        <button id="clearData" class="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-red-500 transition-colors">Zerar Progresso Local</button>
-    </div>
+    <footer class="max-w-6xl mx-auto mt-12 px-4">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex gap-3 w-full md:w-auto">
+                <button onclick="exportData()" class="flex-1 md:flex-none px-6 py-3 bg-slate-800 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-900 transition-colors">Backup Dados</button>
+                <button onclick="importData()" class="flex-1 md:flex-none px-6 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors">Restaurar</button>
+            </div>
+            <button id="clearData" class="w-full md:w-auto px-6 py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">Zerar Todo Progresso</button>
+        </div>
+    </footer>
 
-    <!-- Modal Responsivo -->
+    <!-- Modal de Estudo (Dia) -->
     <div id="modal" class="fixed inset-0 bg-slate-900/70 hidden items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-md">
-        <div class="bg-white rounded-t-3xl md:rounded-3xl max-w-md w-full p-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div class="bg-white rounded-t-3xl md:rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <h3 id="modalDate" class="text-xl font-black text-slate-800"></h3>
-                    <p class="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Planejamento do Dia</p>
+                    <p class="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Horas por Disciplina</p>
                 </div>
                 <button onclick="closeModal()" class="p-2 bg-slate-100 rounded-full text-slate-500">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div id="modalContent" class="space-y-3"></div>
-            <button onclick="toggleDay()" id="completeBtn" class="w-full mt-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg"></button>
+            
+            <div id="modalContent" class="space-y-4"></div>
+
+            <div class="mt-8 grid grid-cols-2 gap-3">
+                <button onclick="closeModal()" class="py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest">Cancelar</button>
+                <button onclick="saveDayProgress()" id="completeBtn" class="py-4 bg-green-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-green-100"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Dashboard -->
+    <div id="dashModal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-4 z-[60] backdrop-blur-xl">
+        <div class="bg-white rounded-[2.5rem] max-w-4xl w-full p-6 md:p-10 shadow-2xl max-h-[95vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-10">
+                <div>
+                    <h2 class="text-3xl font-black text-slate-800 tracking-tighter">Desempenho Geral</h2>
+                    <p class="text-slate-400 font-bold text-sm uppercase tracking-[0.2em]">Análise de horas acumuladas</p>
+                </div>
+                <button onclick="closeDashboard()" class="p-3 bg-slate-100 rounded-2xl text-slate-500 hover:bg-slate-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div class="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                    <p class="text-blue-600 font-black text-xs uppercase tracking-widest mb-1">Total de Horas</p>
+                    <h4 id="statTotalHours" class="text-4xl font-black text-blue-900">0h</h4>
+                </div>
+                <div class="bg-green-50 p-6 rounded-[2rem] border border-green-100">
+                    <p class="text-green-600 font-black text-xs uppercase tracking-widest mb-1">Dias Concluídos</p>
+                    <h4 id="statTotalDays" class="text-4xl font-black text-green-900">0</h4>
+                </div>
+                <div class="bg-purple-50 p-6 rounded-[2rem] border border-purple-100">
+                    <p class="text-purple-600 font-black text-xs uppercase tracking-widest mb-1">Média Diária</p>
+                    <h4 id="statAverage" class="text-4xl font-black text-purple-900">0h</h4>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                    <p class="text-slate-500 font-black text-xs uppercase tracking-widest mb-6 text-center">Horas por Disciplina</p>
+                    <div class="chart-container">
+                        <canvas id="chartBars"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                    <p class="text-slate-500 font-black text-xs uppercase tracking-widest mb-6 text-center">Distribuição %</p>
+                    <div class="chart-container">
+                        <canvas id="chartDoughnut"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const storageKey = "tjsc_final_responsive_v1";
-        
-        // Detecta data atual
+        const storageKey = "tjsc_v2_dashboard";
         const now = new Date();
         let currentYear = now.getFullYear();
         let currentMonth = now.getMonth(); 
-        
         let selectedDayKey = null;
+        let barChart = null;
+        let doughnutChart = null;
 
         const masterSchedule = {
-            1: [ { name: "Língua Portuguesa", class: "c-portugues" }, { name: "Direito Civil", class: "c-civil" } ],
-            2: [ { name: "Direito Proc. Civil", class: "c-proc-civil" }, { name: "Direito Constitucional", class: "c-constitucional" }, { name: "Direito Proc. Penal", class: "c-proc-penal" } ],
-            3: [ { name: "Língua Portuguesa", class: "c-portugues" }, { name: "Direito Civil", class: "c-civil" } ],
-            4: [ { name: "Direito Proc. Civil", class: "c-proc-civil" }, { name: "Direito Administrativo", class: "c-administrativo" } ],
-            5: [ { name: "Língua Portuguesa", class: "c-portugues" }, { name: "Direito Civil", class: "c-civil" }, { name: "Direito Penal", class: "c-penal" } ],
-            6: [ { name: "Direito Proc. Civil", class: "c-proc-civil" }, { name: "Direito Penal", class: "c-penal" }, { name: "Direito Proc. Penal", class: "c-proc-penal" } ],
-            0: [ { name: "Direito Administrativo", class: "c-administrativo" }, { name: "Direito Constitucional", class: "c-constitucional" } ]
+            1: [ { id: "port", name: "Língua Portuguesa", class: "c-portugues" }, { id: "civil", name: "Direito Civil", class: "c-civil" } ],
+            2: [ { id: "p-civil", name: "Direito Proc. Civil", class: "c-proc-civil" }, { id: "const", name: "Direito Constitucional", class: "c-constitucional" }, { id: "p-penal", name: "Direito Proc. Penal", class: "c-proc-penal" } ],
+            3: [ { id: "port", name: "Língua Portuguesa", class: "c-portugues" }, { id: "civil", name: "Direito Civil", class: "c-civil" } ],
+            4: [ { id: "p-civil", name: "Direito Proc. Civil", class: "c-proc-civil" }, { id: "admin", name: "Direito Administrativo", class: "c-administrativo" } ],
+            5: [ { id: "port", name: "Língua Portuguesa", class: "c-portugues" }, { id: "civil", name: "Direito Civil", class: "c-civil" }, { id: "penal", name: "Direito Penal", class: "c-penal" } ],
+            6: [ { id: "p-civil", name: "Direito Proc. Civil", class: "c-proc-civil" }, { id: "penal", name: "Direito Penal", class: "c-penal" }, { id: "p-penal", name: "Direito Proc. Penal", class: "c-proc-penal" } ],
+            0: [ { id: "admin", name: "Direito Administrativo", class: "c-administrativo" }, { id: "const", name: "Direito Constitucional", class: "c-constitucional" } ]
         };
 
+        // progress[dayKey] = { completed: bool, hours: { discId: val } }
         let progress = JSON.parse(localStorage.getItem(storageKey)) || {};
 
         function render(shouldScroll = false) {
@@ -192,106 +258,241 @@
 
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-            const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
 
-            // Lógica Desktop (Grid)
             for (let i = firstDay; i > 0; i--) {
                 grid.innerHTML += `<div class="calendar-day opacity-20 bg-slate-50"></div>`;
             }
 
-            // Loop dos dias do mês
             for (let i = 1; i <= daysInMonth; i++) {
+                const dayKey = `${currentYear}-${currentMonth}-${i}`;
+                const data = progress[dayKey] || { completed: false, hours: {} };
                 const date = new Date(currentYear, currentMonth, i);
                 const dayOfWeek = date.getDay();
-                const dayKey = `${currentYear}-${currentMonth}-${i}`;
-                const isCompleted = progress[dayKey];
                 const disciplines = masterSchedule[dayOfWeek];
-                
-                // Verifica se é hoje
                 const isToday = i === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear();
 
-                // Render Desktop
+                // Desktop
                 const dayDiv = document.createElement('div');
-                dayDiv.className = `calendar-day ${isCompleted ? 'completed' : ''} ${isToday ? 'is-today' : ''}`;
+                dayDiv.className = `calendar-day ${data.completed ? 'completed' : ''} ${isToday ? 'is-today' : ''}`;
                 dayDiv.onclick = () => openModal(i, dayOfWeek, dayKey);
                 dayDiv.innerHTML = `
                     <span class="day-number">${i}${isToday ? ' (Hoje)' : ''}</span>
                     ${disciplines.map(d => `<div class="discipline-tag ${d.class}">${d.name.replace('Direito ', '')}</div>`).join('')}
-                    ${isCompleted ? '<div class="absolute top-2 right-2 text-green-600"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path></svg></div>' : ''}
+                    ${data.completed ? '<div class="absolute top-2 right-2 text-green-600"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path></svg></div>' : ''}
                 `;
                 grid.appendChild(dayDiv);
 
-                // Render Mobile (Lista)
+                // Mobile
                 const card = document.createElement('div');
-                card.className = `mobile-card ${isCompleted ? 'completed' : ''} ${isToday ? 'is-today' : ''}`;
+                card.className = `mobile-card ${data.completed ? 'completed' : ''} ${isToday ? 'is-today' : ''}`;
                 if (isToday) card.id = "today-mobile-card";
                 card.onclick = () => openModal(i, dayOfWeek, dayKey);
                 card.innerHTML = `
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center gap-3">
-                            <span class="w-10 h-10 flex items-center justify-center ${isToday ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'} rounded-full font-black">${i}</span>
+                            <span class="w-10 h-10 flex items-center justify-center ${isToday ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'} rounded-full font-black text-sm">${i}</span>
                             <div>
-                                <div class="font-black text-slate-800">${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][dayOfWeek]} ${isToday ? '• Hoje' : ''}</div>
+                                <div class="font-black text-slate-800 text-sm">${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][dayOfWeek]} ${isToday ? '• Hoje' : ''}</div>
                                 <div class="text-[10px] text-slate-400 font-bold uppercase">${monthLabel[currentMonth]}</div>
                             </div>
                         </div>
-                        ${isCompleted ? '<span class="bg-green-600 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase">Feito</span>' : '<span class="text-slate-300 text-[10px] font-black uppercase tracking-tighter">Pendente</span>'}
+                        ${data.completed ? '<span class="bg-green-600 text-white text-[9px] px-3 py-1 rounded-full font-black uppercase">Concluído</span>' : '<span class="text-slate-300 text-[9px] font-black uppercase tracking-tighter">Pendente</span>'}
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        ${disciplines.map(d => `<span class="text-[10px] font-bold px-2 py-1 rounded-lg ${d.class}">${d.name}</span>`).join('')}
+                        ${disciplines.map(d => `<span class="text-[9px] font-bold px-2 py-1 rounded-lg ${d.class}">${d.name}</span>`).join('')}
                     </div>
                 `;
                 list.appendChild(card);
             }
 
-            // Scroll suave para o dia de hoje no Mobile
             if (shouldScroll) {
                 setTimeout(() => {
                     const todayCard = document.getElementById('today-mobile-card');
-                    if (todayCard && window.innerWidth < 768) {
-                        todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
+                    if (todayCard && window.innerWidth < 768) todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 300);
             }
         }
 
         function openModal(day, dayOfWeek, key) {
             selectedDayKey = key;
+            const data = progress[key] || { completed: false, hours: {} };
             const weekDays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-            document.getElementById('modalDate').innerText = `${day} de ${document.getElementById('currentMonthYear').innerText.split(' ')[0]}, ${weekDays[dayOfWeek]}`;
+            document.getElementById('modalDate').innerText = `${day} de ${document.getElementById('currentMonthYear').innerText.split(' ')[0]}`;
             
             document.getElementById('modalContent').innerHTML = masterSchedule[dayOfWeek].map(item => `
-                <div class="flex items-center gap-4 p-5 rounded-2xl ${item.class} border border-black/5">
-                    <div class="w-2 h-8 bg-current opacity-20 rounded-full"></div>
-                    <div class="font-bold text-sm">${item.name}</div>
+                <div class="p-4 rounded-2xl ${item.class} border border-black/5">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="font-bold text-sm">${item.name}</div>
+                        <div class="text-[10px] font-black uppercase opacity-60">Horas focadas</div>
+                    </div>
+                    <input type="number" step="0.5" min="0" 
+                        class="w-full bg-white/50 border-none rounded-xl py-3 px-4 font-black text-lg focus:ring-2 focus:ring-current outline-none" 
+                        placeholder="0.0" 
+                        id="hours-${item.id}" 
+                        value="${data.hours[item.id] || ''}">
                 </div>
             `).join('');
             
             const btn = document.getElementById('completeBtn');
-            const done = progress[key];
-            btn.innerText = done ? "Remover Conclusão" : "Concluir Dia de Estudo";
-            btn.className = done 
-                ? "w-full mt-8 py-5 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm uppercase tracking-widest" 
-                : "w-full mt-8 py-5 bg-green-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-green-200";
-            
+            btn.innerText = data.completed ? "Atualizar Dados" : "Concluir Dia";
             document.getElementById('modal').classList.replace('hidden', 'flex');
         }
 
         function closeModal() { document.getElementById('modal').classList.replace('flex', 'hidden'); }
 
-        function toggleDay() {
-            if (progress[selectedDayKey]) delete progress[selectedDayKey];
-            else progress[selectedDayKey] = true;
+        function saveDayProgress() {
+            const dateStr = selectedDayKey.split('-');
+            const date = new Date(parseInt(dateStr[0]), parseInt(dateStr[1]), parseInt(dateStr[2]));
+            const dayOfWeek = date.getDay();
+            const disciplines = masterSchedule[dayOfWeek];
+            
+            let hoursData = {};
+            let totalDayHours = 0;
+
+            disciplines.forEach(d => {
+                const val = parseFloat(document.getElementById(`hours-${d.id}`).value) || 0;
+                if(val > 0) hoursData[d.id] = val;
+                totalDayHours += val;
+            });
+
+            progress[selectedDayKey] = {
+                completed: totalDayHours > 0, 
+                hours: hoursData
+            };
+
             localStorage.setItem(storageKey, JSON.stringify(progress));
-            render(false); // Renderiza sem scroll ao marcar conclusão
+            render(false);
             closeModal();
+        }
+
+        // Dashboard Logic
+        function openDashboard() {
+            document.getElementById('dashModal').classList.replace('hidden', 'flex');
+            // Timeout curto para garantir que o DOM renderizou o canvas antes do Chart.js tentar medir o tamanho
+            setTimeout(updateStats, 50);
+        }
+
+        function closeDashboard() {
+            document.getElementById('dashModal').classList.replace('flex', 'hidden');
+        }
+
+        function updateStats() {
+            let totalH = 0;
+            let totalD = 0;
+            let discTotals = {
+                port: 0, civil: 0, "p-civil": 0, const: 0, "p-penal": 0, admin: 0, penal: 0
+            };
+            const labelsMap = {
+                port: "Português", civil: "Dir. Civil", "p-civil": "Proc. Civil", 
+                const: "Constitucional", "p-penal": "Proc. Penal", admin: "Administrativo", penal: "Penal"
+            };
+
+            Object.values(progress).forEach(day => {
+                if (day.completed) {
+                    totalD++;
+                    Object.entries(day.hours).forEach(([id, val]) => {
+                        totalH += val;
+                        discTotals[id] = (discTotals[id] || 0) + val;
+                    });
+                }
+            });
+
+            document.getElementById('statTotalHours').innerText = totalH + 'h';
+            document.getElementById('statTotalDays').innerText = totalD;
+            document.getElementById('statAverage').innerText = totalD > 0 ? (totalH/totalD).toFixed(1) + 'h' : '0h';
+
+            const dataValues = Object.values(discTotals);
+            const dataLabels = Object.keys(discTotals).map(id => labelsMap[id]);
+
+            // Configurações Globais para evitar o redimensionamento infinito
+            Chart.defaults.maintainAspectRatio = false;
+            Chart.defaults.responsive = true;
+
+            // Charts
+            if (barChart) barChart.destroy();
+            if (doughnutChart) doughnutChart.destroy();
+
+            const ctxBar = document.getElementById('chartBars').getContext('2d');
+            barChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: dataLabels,
+                    datasets: [{
+                        label: 'Horas Totais',
+                        data: dataValues,
+                        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1', '#ef4444'],
+                        borderRadius: 8
+                    }]
+                },
+                options: { 
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }, 
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } } 
+                    }
+                }
+            });
+
+            const ctxDou = document.getElementById('chartDoughnut').getContext('2d');
+            doughnutChart = new Chart(ctxDou, {
+                type: 'doughnut',
+                data: {
+                    labels: dataLabels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1', '#ef4444'],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: { 
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { usePointStyle: true, font: { weight: 'bold', size: 9 }, padding: 15 } 
+                        } 
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        // Backup & Restore
+        function exportData() {
+            const blob = new Blob([JSON.stringify(progress)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tjsc_estudos_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        if(confirm("Isso irá substituir seu progresso atual. Continuar?")) {
+                            progress = imported;
+                            localStorage.setItem(storageKey, JSON.stringify(progress));
+                            render();
+                        }
+                    } catch (err) { alert("Arquivo inválido."); }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
         }
 
         document.getElementById('prevMonth').onclick = () => { currentMonth--; if(currentMonth < 0){ currentMonth=11; currentYear--; } render(false); };
         document.getElementById('nextMonth').onclick = () => { currentMonth++; if(currentMonth > 11){ currentMonth=0; currentYear++; } render(false); };
-        document.getElementById('clearData').onclick = () => { if(confirm("Zerar todo o seu progresso?")) { progress = {}; localStorage.removeItem(storageKey); render(false); } };
+        document.getElementById('clearData').onclick = () => { if(confirm("ATENÇÃO: Isso apagará permanentemente todos os seus dados de estudo e horas. Tem certeza?")) { progress = {}; localStorage.removeItem(storageKey); render(false); } };
 
-        // Renderização inicial com scroll automático
         render(true);
     </script>
 </body>
